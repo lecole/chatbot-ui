@@ -1,15 +1,9 @@
 "use client"
 
-import {
-  MODEL_CAPABILITIES,
-  THINKING_LEVEL_DESCRIPTIONS,
-  ThinkingLevel,
-  isThinkingSupported
-} from "@/lib/model-capabilities"
-import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import { ChatbotUIContext } from "@/context/context"
+import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import { ChatSettings } from "@/types"
-import { IconBrain, IconInfoCircle } from "@tabler/icons-react"
+import { IconInfoCircle } from "@tabler/icons-react"
 import { FC, useContext } from "react"
 import { ModelSelect } from "../models/model-select"
 import { AdvancedSettings } from "./advanced-settings"
@@ -43,8 +37,6 @@ export const ChatSettingsForm: FC<ChatSettingsFormProps> = ({
 
   if (!profile) return null
 
-  const hasThinkingSupport = isThinkingSupported(chatSettings.model)
-
   return (
     <div className="space-y-3">
       <div className="space-y-1">
@@ -53,76 +45,10 @@ export const ChatSettingsForm: FC<ChatSettingsFormProps> = ({
         <ModelSelect
           selectedModelId={chatSettings.model}
           onSelectModel={model => {
-            onChangeChatSettings({
-              ...chatSettings,
-              model,
-              // Reset thinking level if switching to non-thinking model
-              thinkingLevel: isThinkingSupported(model)
-                ? chatSettings.thinkingLevel
-                : "none"
-            })
+            onChangeChatSettings({ ...chatSettings, model })
           }}
         />
       </div>
-
-      {hasThinkingSupport && (
-        <div className="space-y-1">
-          <Label className="flex items-center space-x-2">
-            <IconBrain className="size-4" />
-            <span>Thinking Level</span>
-            {showTooltip && (
-              <WithTooltip
-                delayDuration={0}
-                display={
-                  <div className="w-[400px] p-3">
-                    Select the level of detailed reasoning for responses. Higher
-                    levels provide more thorough analysis but may take longer.
-                    Note: Temperature will be set to 1 when thinking is enabled.
-                  </div>
-                }
-                trigger={
-                  <IconInfoCircle
-                    className="cursor-hover:opacity-50"
-                    size={16}
-                  />
-                }
-              />
-            )}
-          </Label>
-
-          <Select
-            value={chatSettings.thinkingLevel || "none"}
-            onValueChange={(value: ThinkingLevel) => {
-              onChangeChatSettings({
-                ...chatSettings,
-                thinkingLevel: value,
-                temperature: value !== "none" ? 1 : chatSettings.temperature
-              })
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue defaultValue="none" />
-            </SelectTrigger>
-
-            <SelectContent>
-              {Object.entries(THINKING_LEVEL_DESCRIPTIONS).map(
-                ([level, description]) => (
-                  <SelectItem key={level} value={level}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">
-                        {level.charAt(0).toUpperCase() + level.slice(1)}
-                      </span>
-                      <span className="text-muted-foreground text-xs">
-                        {description}
-                      </span>
-                    </div>
-                  </SelectItem>
-                )
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
 
       <div className="space-y-1">
         <Label>Prompt</Label>
@@ -189,21 +115,13 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
       findOpenRouterModel(chatSettings.model)?.maxContext || 4096
   }
 
-  const isThinkingEnabled =
-    isThinkingSupported(chatSettings.model) &&
-    chatSettings.thinkingLevel !== "none"
-
   return (
     <div className="mt-5">
       <div className="space-y-3">
         <Label className="flex items-center space-x-1">
           <div>Temperature:</div>
+
           <div>{chatSettings.temperature}</div>
-          {isThinkingEnabled && (
-            <span className="text-muted-foreground ml-2 text-xs">
-              (Locked to 1 with Thinking enabled)
-            </span>
-          )}
         </Label>
 
         <Slider
@@ -217,14 +135,13 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
           min={MODEL_LIMITS.MIN_TEMPERATURE}
           max={MODEL_LIMITS.MAX_TEMPERATURE}
           step={0.01}
-          disabled={isThinkingEnabled}
         />
       </div>
 
-      {/* Rest of your AdvancedContent component remains the same */}
       <div className="mt-6 space-y-3">
         <Label className="flex items-center space-x-1">
           <div>Context Length:</div>
+
           <div>{chatSettings.contextLength}</div>
         </Label>
 

@@ -101,6 +101,10 @@ export const ModelIcon: FC<ModelIconProps> = ({
           height={height}
         />
       )
+    case "deepseek":
+      return <IconSparkles size={width} />
+    case "togetherai":
+      return <IconSparkles size={width} />
     default:
       return <IconSparkles size={width} />
   }

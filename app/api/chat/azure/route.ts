@@ -19,7 +19,8 @@ export async function POST(request: Request) {
     const KEY = profile.azure_openai_api_key
 
     let DEPLOYMENT_ID = ""
-    switch (chatSettings.model) {
+    // Retired model IDs were removed from LLMID on 8/25/26; the cast keeps this legacy check compiling unchanged
+    switch (chatSettings.model as string) {
       case "gpt-3.5-turbo":
         DEPLOYMENT_ID = profile.azure_openai_35_turbo_id || ""
         break
@@ -55,7 +56,8 @@ export async function POST(request: Request) {
       model: DEPLOYMENT_ID as ChatCompletionCreateParamsBase["model"],
       messages: messages as ChatCompletionCreateParamsBase["messages"],
       temperature: chatSettings.temperature,
-      max_tokens: chatSettings.model === "gpt-4-vision-preview" ? 4096 : null, // TODO: Fix
+      max_tokens:
+        (chatSettings.model as string) === "gpt-4-vision-preview" ? 4096 : null, // TODO: Fix
       stream: true
     })
 

@@ -8,3 +8,6 @@ export type ModelProvider =
   | "ollama"
   | "openrouter"
   | "custom"
+  | "xai"
+  | "deepseek"
+  | "togetherai"

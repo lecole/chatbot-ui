@@ -1,11 +1,11 @@
-import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
 import { ServerRuntime } from "next"
 import OpenAI from "openai"
 import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
 
-export const runtime = "edge"
+export const runtime: ServerRuntime = "edge"
+
 export async function POST(request: Request) {
   const json = await request.json()
   const { chatSettings, messages } = json as {
@@ -16,12 +16,11 @@ export async function POST(request: Request) {
   try {
     const profile = await getServerProfile()
 
-    checkApiKey(profile.groq_api_key, "G")
+    checkApiKey(profile.deepseek_api_key, "OpenAI")
 
-    // Groq is compatible with the OpenAI SDK
-    const groq = new OpenAI({
-      apiKey: profile.groq_api_key || "",
-      baseURL: "https://api.groq.com/openai/v1"
+    const openai = new OpenAI({
+      apiKey: profile.deepseek_api_key || ""
+      // organization: profile.openai_organization_id
     })
 
     let requestBody: ChatCompletionCreateParamsBase = {
@@ -30,17 +29,20 @@ export async function POST(request: Request) {
       stream: true
     }
 
-    // Handle max tokens for specific models
-    ;(requestBody.max_tokens =
-      CHAT_SETTING_LIMITS[chatSettings.model].MAX_TOKEN_OUTPUT_LENGTH),
-      console.log(
-        "########### chatSettings.thinkingLevel",
-        chatSettings.thinkingLevel
-      )
+    // // Handle max tokens for specific models
+    // if (chatSettings.model === "gpt-4-vision-preview" ||
+    //     chatSettings.model === "gpt-4o") {
+    //   requestBody.max_tokens = 4096
+    // }
+
+    // console.log('########### chatSettings.thinkingLevel', chatSettings.thinkingLevel)
 
     // Handle o3-mini specific settings
     // Retired model IDs were removed from LLMID on 8/25/26; the cast keeps this legacy check compiling unchanged
-    if ((chatSettings.model as string) === "o3-mini") {
+    if (
+      (chatSettings.model as string) === "o3-mini" ||
+      chatSettings.model === "o4-mini"
+    ) {
       if (chatSettings.thinkingLevel && chatSettings.thinkingLevel !== "none") {
         requestBody.reasoning_effort = chatSettings.thinkingLevel // 'low', 'medium', or 'high'
       }
@@ -49,7 +51,7 @@ export async function POST(request: Request) {
       requestBody.temperature = chatSettings.temperature
     }
 
-    const response = await groq.chat.completions.create(requestBody)
+    const response = await openai.chat.completions.create(requestBody)
 
     // Create a custom streaming response
     const stream = new ReadableStream({

@@ -8,7 +8,9 @@ export interface ChatSettings {
   contextLength: number
   includeProfileContext: boolean
   includeWorkspaceInstructions: boolean
+  enableThinking?: boolean
   embeddingsProvider: "openai" | "local"
+  thinkingLevel?: "none" | "low" | "medium" | "high"
 }
 
 export interface ChatPayload {

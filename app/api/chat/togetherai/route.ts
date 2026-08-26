@@ -1,3 +1,8 @@
+// app/api/chat/togetherai/route.ts
+// API route handler for Together AI chat completions
+// Together AI provides OpenAI-compatible APIs for high-performance open-source models
+// RELEVANT FILES: lib/models/llm/togetherai-llm-list.ts, lib/server/server-chat-helpers.ts, types/llms.ts
+
 import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
@@ -5,7 +10,8 @@ import { ServerRuntime } from "next"
 import OpenAI from "openai"
 import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
 
-export const runtime = "edge"
+export const runtime: ServerRuntime = "edge"
+
 export async function POST(request: Request) {
   const json = await request.json()
   const { chatSettings, messages } = json as {
@@ -16,40 +22,26 @@ export async function POST(request: Request) {
   try {
     const profile = await getServerProfile()
 
-    checkApiKey(profile.groq_api_key, "G")
+    checkApiKey(profile.togetherai_api_key, "Together AI")
 
-    // Groq is compatible with the OpenAI SDK
-    const groq = new OpenAI({
-      apiKey: profile.groq_api_key || "",
-      baseURL: "https://api.groq.com/openai/v1"
+    // Together AI is compatible with the OpenAI SDK
+    const togetherai = new OpenAI({
+      apiKey: profile.togetherai_api_key || "",
+      baseURL: "https://api.together.xyz/v1"
     })
 
     let requestBody: ChatCompletionCreateParamsBase = {
       model: chatSettings.model,
       messages: messages,
-      stream: true
+      stream: true,
+      temperature: chatSettings.temperature
     }
 
     // Handle max tokens for specific models
-    ;(requestBody.max_tokens =
-      CHAT_SETTING_LIMITS[chatSettings.model].MAX_TOKEN_OUTPUT_LENGTH),
-      console.log(
-        "########### chatSettings.thinkingLevel",
-        chatSettings.thinkingLevel
-      )
+    requestBody.max_tokens =
+      CHAT_SETTING_LIMITS[chatSettings.model].MAX_TOKEN_OUTPUT_LENGTH
 
-    // Handle o3-mini specific settings
-    // Retired model IDs were removed from LLMID on 8/25/26; the cast keeps this legacy check compiling unchanged
-    if ((chatSettings.model as string) === "o3-mini") {
-      if (chatSettings.thinkingLevel && chatSettings.thinkingLevel !== "none") {
-        requestBody.reasoning_effort = chatSettings.thinkingLevel // 'low', 'medium', or 'high'
-      }
-    } else {
-      // For all other models
-      requestBody.temperature = chatSettings.temperature
-    }
-
-    const response = await groq.chat.completions.create(requestBody)
+    const response = await togetherai.chat.completions.create(requestBody)
 
     // Create a custom streaming response
     const stream = new ReadableStream({
@@ -77,10 +69,10 @@ export async function POST(request: Request) {
 
     if (errorMessage.toLowerCase().includes("api key not found")) {
       errorMessage =
-        "OpenAI API Key not found. Please set it in your profile settings."
+        "Together AI API Key not found. Please set it in your profile settings."
     } else if (errorMessage.toLowerCase().includes("incorrect api key")) {
       errorMessage =
-        "OpenAI API Key is incorrect. Please fix it in your profile settings."
+        "Together AI API Key is incorrect. Please fix it in your profile settings."
     }
 
     return new Response(JSON.stringify({ message: errorMessage }), {
